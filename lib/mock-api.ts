@@ -49,6 +49,30 @@ let tickets: Ticket[] = [
     status: 'Done',
     createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
   },
+  {
+    id: 'ticket-004',
+    title: 'API rate limiting causing 429 errors in production',
+    description:
+      'After the latest deploy, several background jobs are hitting the external payment API faster than the 60 req/min limit. We need to add a retry-with-backoff wrapper.',
+    status: 'Open',
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'ticket-005',
+    title: 'Notification emails not sent for high-priority tickets',
+    description:
+      'When a ticket is created with priority "High", the email notification job is silently failing. Logs show the worker starts but the SMTP handshake never completes.',
+    status: 'In Progress',
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'ticket-006',
+    title: 'Upgrade React to v19 and remove deprecated lifecycle hooks',
+    description:
+      'The codebase still uses componentWillMount in three class components. Upgrade React to v19 and migrate the components to function components with useEffect.',
+    status: 'Done',
+    createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+  },
 ];
 
 let comments: Comment[] = [
@@ -75,10 +99,15 @@ let comments: Comment[] = [
 // ─── Ticket API ───────────────────────────────────────────────────────────────
 
 /**
- * Fetch all tickets.
+ * Fetch all tickets, optionally filtered by title (case-insensitive substring match).
  */
-export function getTickets(): Promise<Ticket[]> {
-  return delay([...tickets]);
+export function getTickets(search?: string): Promise<Ticket[]> {
+  const result = search
+    ? tickets.filter((t) =>
+        t.title.toLowerCase().includes(search.toLowerCase())
+      )
+    : tickets;
+  return delay([...result]);
 }
 
 /**
