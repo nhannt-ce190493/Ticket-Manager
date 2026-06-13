@@ -18,17 +18,30 @@ export type LoginFormValues = z.infer<typeof loginSchema>;
 export const createTicketSchema = z.object({
   title: z
     .string({ required_error: 'Title is required.' })
-    .min(1, 'Title cannot be empty.')
-    .max(100, 'Title must not exceed 100 characters.'),
+    .min(1, 'Tiêu đề không được để trống.')
+    .max(100, 'Tiêu đề tối đa 100 ký tự.'),
   description: z
     .string({ required_error: 'Description is required.' })
-    .min(1, 'Description cannot be empty.'),
+    .min(1, 'Mô tả không được để trống.'),
   status: z.enum(['Open', 'In Progress', 'Done'], {
     required_error: 'Status is required.',
   }),
 });
 
 export type CreateTicketFormValues = z.infer<typeof createTicketSchema>;
+
+/** Schema used by the /tickets/create form (status is always 'Open' on creation). */
+export const createTicketFormSchema = z.object({
+  title: z
+    .string({ required_error: 'Tiêu đề là bắt buộc.' })
+    .min(1, 'Tiêu đề không được để trống.')
+    .max(100, 'Tiêu đề tối đa 100 ký tự.'),
+  description: z
+    .string({ required_error: 'Mô tả là bắt buộc.' })
+    .min(1, 'Mô tả không được để trống.'),
+});
+
+export type CreateTicketFormData = z.infer<typeof createTicketFormSchema>;
 
 export const updateTicketSchema = createTicketSchema.partial();
 
