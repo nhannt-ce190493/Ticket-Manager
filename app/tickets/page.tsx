@@ -2,8 +2,9 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Cookies from 'js-cookie';
-import { Search, LogOut, Inbox } from 'lucide-react';
+import { Search, LogOut, Inbox, Plus } from 'lucide-react';
 
 import { useTickets } from '@/hooks/useTickets';
 import { SkeletonList } from '@/components/SkeletonList';
@@ -49,8 +50,13 @@ function TicketCard({ ticket }: { ticket: Ticket }) {
     <li className="group rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
       {/* Title + Badge */}
       <div className="flex items-start justify-between gap-4">
-        <h2 className="text-sm font-semibold text-slate-800 leading-snug group-hover:text-indigo-600 transition-colors">
-          {ticket.title}
+        <h2 className="text-sm font-semibold text-slate-800 leading-snug">
+          <Link
+            href={`/tickets/${ticket.id}`}
+            className="hover:text-indigo-600 transition-colors"
+          >
+            {ticket.title}
+          </Link>
         </h2>
         <Badge
           className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${cfg.className}`}
@@ -105,11 +111,21 @@ export default function TicketsPage() {
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6">
 
         {/* Page title */}
-        <div className="mb-6">
-          <h1 className="text-xl font-bold text-slate-900">Danh sách Ticket</h1>
-          <p className="mt-0.5 text-sm text-slate-500">
-            Theo dõi và quản lý yêu cầu nội bộ
-          </p>
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-bold text-slate-900">Danh sách Ticket</h1>
+            <p className="mt-0.5 text-sm text-slate-500">
+              Theo dõi và quản lý yêu cầu nội bộ
+            </p>
+          </div>
+          <Link
+            id="create-ticket-btn"
+            href="/tickets/create"
+            className="inline-flex h-7 shrink-0 items-center gap-1 rounded-[min(var(--radius-md),12px)] bg-indigo-600 px-2.5 text-[0.8rem] font-medium text-white transition-colors hover:bg-indigo-500"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Tạo Ticket
+          </Link>
         </div>
 
         {/* Search */}
