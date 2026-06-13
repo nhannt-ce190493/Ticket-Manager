@@ -5,10 +5,10 @@ import Link from 'next/link';
 import { ArrowLeft, CheckCircle2 } from 'lucide-react';
 
 import { useTicket, useUpdateTicketStatus } from '@/hooks/useTicket';
+import { CommentSection } from '@/components/CommentSection';
 import { AppHeader } from '@/components/AppHeader';
 import { AppFooter } from '@/components/AppFooter';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { TicketStatus } from '@/types';
 
@@ -228,6 +228,9 @@ export default function TicketDetailPage({
                 </p>
               )}
             </div>
+
+            {/* Comments */}
+            <CommentSection ticketId={ticket.id} />
           </div>
         )}
       </main>

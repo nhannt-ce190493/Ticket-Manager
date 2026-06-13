@@ -2,7 +2,7 @@
  * lib/mock-api.ts
  *
  * Option A: module-level array for in-memory persistence.
- * All functions return Promises with a simulated ~400ms latency via setTimeout.
+ * All functions return Promises with a simulated latency via setTimeout.
  * No real HTTP calls are made; data resets on each server restart.
  */
 
@@ -10,10 +10,16 @@ import type { Ticket, Comment, TicketStatus } from '@/types';
 
 // ─── Simulated Latency ────────────────────────────────────────────────────────
 
+/** Default query latency: 400 ms */
 const LATENCY_MS = 400;
 
 function delay<T>(value: T): Promise<T> {
   return new Promise((resolve) => setTimeout(() => resolve(value), LATENCY_MS));
+}
+
+/** Custom-latency variant used for mutations that need a distinct delay. */
+function delayMs<T>(value: T, ms: number): Promise<T> {
+  return new Promise((resolve) => setTimeout(() => resolve(value), ms));
 }
 
 // ─── ID Generator ─────────────────────────────────────────────────────────────
@@ -191,6 +197,7 @@ export function getCommentsByTicketId(ticketId: string): Promise<Comment[]> {
 
 /**
  * Add a comment to a ticket.
+ * Uses a 500 ms delay (distinct from the default 400 ms query latency).
  */
 export function addComment(
   ticketId: string,
@@ -207,7 +214,7 @@ export function addComment(
     createdAt: new Date().toISOString(),
   };
   comments = [...comments, newComment];
-  return delay({ ...newComment });
+  return delayMs({ ...newComment }, 500);
 }
 
 /**
@@ -219,5 +226,5 @@ export function deleteComment(id: string): Promise<void> {
     return Promise.reject(new Error(`Comment with id "${id}" not found.`));
   }
   comments = comments.filter((c) => c.id !== id);
-  return delay(undefined as unknown as void);
+  return delayMs(undefined, 400) as Promise<void>;
 }
