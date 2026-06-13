@@ -5,8 +5,12 @@ import type { NextRequest } from 'next/server';
 
 const AUTH_COOKIE = 'auth-token';
 
-/** Routes that require an authenticated session */
-const PROTECTED_PREFIXES = ['/tickets', '/'];
+/**
+ * Route prefixes that require a valid session.
+ * NOTE: '/' is intentionally excluded here — it is handled separately below
+ * to avoid matching every route (including /login) via startsWith('/').
+ */
+const PROTECTED_PREFIXES = ['/tickets'];
 
 /** Routes only accessible to unauthenticated users */
 const AUTH_ONLY_PATHS = ['/login'];
@@ -30,20 +34,26 @@ function isAuthOnlyPath(pathname: string): boolean {
   );
 }
 
-// ─── Proxy (formerly Middleware) ─────────────────────────────────────────────
+// ─── Proxy ────────────────────────────────────────────────────────────────────
 
 export function proxy(request: NextRequest): NextResponse {
   const { pathname } = request.nextUrl;
   const authenticated = isAuthenticated(request);
 
-  // 1. Unauthenticated user → protected route: redirect to /login
+  // 1. Root path — redirect to appropriate destination
+  if (pathname === '/') {
+    const dest = authenticated ? '/tickets' : '/login';
+    return NextResponse.redirect(new URL(dest, request.url));
+  }
+
+  // 2. Unauthenticated user → protected route: redirect to /login
   if (isProtectedPath(pathname) && !authenticated) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // 2. Authenticated user → /login: redirect to /tickets
+  // 3. Authenticated user → /login: redirect to /tickets
   if (isAuthOnlyPath(pathname) && authenticated) {
     return NextResponse.redirect(new URL('/tickets', request.url));
   }
@@ -53,10 +63,6 @@ export function proxy(request: NextRequest): NextResponse {
 
 // ─── Matcher ──────────────────────────────────────────────────────────────────
 
-/**
- * Only run middleware on routes we care about.
- * This keeps Next.js internals and static files unaffected.
- */
 export const config = {
   matcher: [
     /*
