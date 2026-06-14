@@ -1,9 +1,9 @@
 /**
  * lib/mock-api.ts
  *
- * Option A: module-level array for in-memory persistence.
+ * Option B: LocalStorage-based persistence.
  * All functions return Promises with a simulated latency via setTimeout.
- * No real HTTP calls are made; data resets on each server restart.
+ * Data persists across server restarts by saving to the browser's localStorage.
  */
 
 import type { Ticket, Comment, TicketStatus } from '@/types';
@@ -30,7 +30,7 @@ function generateId(): string {
 
 // ─── Seed Data ────────────────────────────────────────────────────────────────
 
-let tickets: Ticket[] = [
+const seedTickets: Ticket[] = [
   {
     id: 'ticket-001',
     title: 'Login page shows blank screen on Safari',
@@ -81,7 +81,7 @@ let tickets: Ticket[] = [
   },
 ];
 
-let comments: Comment[] = [
+const seedComments: Comment[] = [
   {
     id: 'comment-001',
     ticketId: 'ticket-001',
@@ -102,12 +102,43 @@ let comments: Comment[] = [
   },
 ];
 
+// ─── Local Storage Helpers ────────────────────────────────────────────────────
+
+function loadTickets(): Ticket[] {
+  if (typeof window === 'undefined') return seedTickets;
+  const data = localStorage.getItem('ticket-manager-tickets');
+  if (data) return JSON.parse(data);
+  localStorage.setItem('ticket-manager-tickets', JSON.stringify(seedTickets));
+  return seedTickets;
+}
+
+function saveTickets(tickets: Ticket[]): void {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('ticket-manager-tickets', JSON.stringify(tickets));
+  }
+}
+
+function loadComments(): Comment[] {
+  if (typeof window === 'undefined') return seedComments;
+  const data = localStorage.getItem('ticket-manager-comments');
+  if (data) return JSON.parse(data);
+  localStorage.setItem('ticket-manager-comments', JSON.stringify(seedComments));
+  return seedComments;
+}
+
+function saveComments(comments: Comment[]): void {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('ticket-manager-comments', JSON.stringify(comments));
+  }
+}
+
 // ─── Ticket API ───────────────────────────────────────────────────────────────
 
 /**
  * Fetch all tickets, optionally filtered by title (case-insensitive substring match).
  */
 export function getTickets(search?: string): Promise<Ticket[]> {
+  const tickets = loadTickets();
   const result = search
     ? tickets.filter((t) =>
         t.title.toLowerCase().includes(search.toLowerCase())
@@ -121,6 +152,7 @@ export function getTickets(search?: string): Promise<Ticket[]> {
  * Rejects with a 404-like error if not found.
  */
 export function getTicketById(id: string): Promise<Ticket> {
+  const tickets = loadTickets();
   const ticket = tickets.find((t) => t.id === id);
   if (!ticket) {
     return Promise.reject(new Error(`Ticket with id "${id}" not found.`));
@@ -134,6 +166,7 @@ export function getTicketById(id: string): Promise<Ticket> {
 export function createTicket(
   data: Pick<Ticket, 'title' | 'description' | 'status'>
 ): Promise<Ticket> {
+  const tickets = loadTickets();
   const newTicket: Ticket = {
     id: `ticket-${generateId()}`,
     title: data.title,
@@ -141,7 +174,7 @@ export function createTicket(
     status: data.status,
     createdAt: new Date().toISOString(),
   };
-  tickets = [newTicket, ...tickets];
+  saveTickets([newTicket, ...tickets]);
   return delay({ ...newTicket });
 }
 
@@ -153,11 +186,13 @@ export function updateTicket(
   id: string,
   data: Partial<Pick<Ticket, 'title' | 'description' | 'status'>>
 ): Promise<Ticket> {
+  const tickets = loadTickets();
   const index = tickets.findIndex((t) => t.id === id);
   if (index === -1) {
     return Promise.reject(new Error(`Ticket with id "${id}" not found.`));
   }
   tickets[index] = { ...tickets[index], ...data };
+  saveTickets(tickets);
   return delay({ ...tickets[index] });
 }
 
@@ -166,12 +201,16 @@ export function updateTicket(
  * Also removes all associated comments.
  */
 export function deleteTicket(id: string): Promise<void> {
+  let tickets = loadTickets();
+  let comments = loadComments();
   const exists = tickets.some((t) => t.id === id);
   if (!exists) {
     return Promise.reject(new Error(`Ticket with id "${id}" not found.`));
   }
   tickets = tickets.filter((t) => t.id !== id);
   comments = comments.filter((c) => c.ticketId !== id);
+  saveTickets(tickets);
+  saveComments(comments);
   return delay(undefined as unknown as void);
 }
 
@@ -191,6 +230,7 @@ export function updateTicketStatus(
  * Fetch all comments for a specific ticket.
  */
 export function getCommentsByTicketId(ticketId: string): Promise<Comment[]> {
+  const comments = loadComments();
   const result = comments.filter((c) => c.ticketId === ticketId);
   return delay([...result]);
 }
@@ -203,6 +243,8 @@ export function addComment(
   ticketId: string,
   content: string
 ): Promise<Comment> {
+  const tickets = loadTickets();
+  let comments = loadComments();
   const ticket = tickets.find((t) => t.id === ticketId);
   if (!ticket) {
     return Promise.reject(new Error(`Ticket with id "${ticketId}" not found.`));
@@ -214,6 +256,7 @@ export function addComment(
     createdAt: new Date().toISOString(),
   };
   comments = [...comments, newComment];
+  saveComments(comments);
   return delayMs({ ...newComment }, 500);
 }
 
@@ -221,10 +264,12 @@ export function addComment(
  * Delete a comment by id.
  */
 export function deleteComment(id: string): Promise<void> {
+  let comments = loadComments();
   const exists = comments.some((c) => c.id === id);
   if (!exists) {
     return Promise.reject(new Error(`Comment with id "${id}" not found.`));
   }
   comments = comments.filter((c) => c.id !== id);
+  saveComments(comments);
   return delayMs(undefined, 400) as Promise<void>;
 }
